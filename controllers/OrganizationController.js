@@ -90,15 +90,15 @@ OrganizationController.updateOrganization = async (req, res) => {
     if (member.access_level !== 'admin') {
       return res.status(403).json({ message: 'Access denied: insufficient permissions' });
     }
-   await Organization.findByIdAndUpdate(
+   const updatedOrganization = await Organization.findByIdAndUpdate(
       req.params.organization_id,
       { name, description },
       { new: true }
     )
     res.json({
-      organization_id: organization._id,
-      name: organization.name,
-      description: organization.description,
+      organization_id: updatedOrganization._id,
+      name: updatedOrganization.name,
+      description: updatedOrganization.description,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
