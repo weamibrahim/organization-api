@@ -5,7 +5,7 @@ const UserController = require('../controllers/UserController');
 
 router.post('/signup', UserController.signup);
 router.post('/signin', UserController.signIn);
-
+router.post('/refresh-token',UserController. refreshToken);
 
 
 module.exports = router;

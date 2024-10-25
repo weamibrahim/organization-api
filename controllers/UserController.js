@@ -59,5 +59,33 @@ UserController.signIn = async (req, res) => {
   }
 };
 
+// refresh token
+UserController.refreshToken = async (req, res) => {
+    const { refresh_token } = req.body;
 
+    if (!refresh_token) {
+      return res.status(400).json({ message: 'Refresh token is required' });
+    }
+  
+    try {
+      
+      jwt.verify(refresh_token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+          return res.status(403).json({ message: 'Invalid refresh token' });
+        }
+  
+        const payload = { user: { id: user.id , email: user.email, name: user.name} };
+        const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const newRefreshToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+  
+        res.json({
+          message: 'Token refreshed successfully',
+          access_token: newAccessToken,
+          refresh_token: newRefreshToken,
+        });
+      });
+    } catch (err) {
+      res.status(500).json({ message: 'Server error' });
+    }
+};
 module.exports = UserController;
