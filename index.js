@@ -2,14 +2,19 @@ const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/dataBase');
 
+const app = express();
+
+// Routes
+const UserRoute = require('./routes/UserRoute');
 
 
 dotenv.config();
 connectDB();
 
-const app = express();
+
 app.use(express.json());
 
+app.use('/api/users', UserRoute);
 
 
 app.get('/', (req, res) => {
