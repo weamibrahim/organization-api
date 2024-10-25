@@ -68,5 +68,42 @@ OrganizationController.getAllOrganizations = async (req, res) => {
 };
 
 
+// Update Organization
+OrganizationController.updateOrganization = async (req, res) => {
+  const { name, description } = req.body;
+
+  try {
+    const organization = await Organization.findById(req.params.organization_id);
+
+    if (!organization) {
+      return res.status(404).json({ message: 'Organization not found' });
+    }
+
+    const isMember = organization.members.some(member => member.email === req.user.email);
+
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied: not a member of the organization' });
+    }
+
+    const member = organization.members.find(member => member.email === req.user.email);
+    
+    if (member.access_level !== 'admin') {
+      return res.status(403).json({ message: 'Access denied: insufficient permissions' });
+    }
+   await Organization.findByIdAndUpdate(
+      req.params.organization_id,
+      { name, description },
+      { new: true }
+    )
+    res.json({
+      organization_id: organization._id,
+      name: organization.name,
+      description: organization.description,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 
 module.exports = OrganizationController;
