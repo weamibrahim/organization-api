@@ -8,6 +8,6 @@ router.get('/:organization_id', authMiddleware,OrganizationController. getOrgani
 router.get('/', authMiddleware,OrganizationController. getAllOrganizations);
 router.put('/:organization_id',authMiddleware,OrganizationController.updateOrganization);
 router.delete('/:organization_id', authMiddleware,OrganizationController. deleteOrganization);
-
+router.post('/:organization_id/invite', authMiddleware,OrganizationController. inviteUserToOrganization);
 
 module.exports = router;

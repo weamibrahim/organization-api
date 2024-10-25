@@ -132,5 +132,28 @@ OrganizationController.deleteOrganization = async (req, res) => {
   }
 };
 
+// Invite User to Organization
+OrganizationController.inviteUserToOrganization = async (req, res) => {
+  const { user_email } = req.body;
+   console.log(user_email)
+  try {
+    const organization = await Organization.findById(req.params.organization_id);
+
+    if (!organization) {
+      return res.status(404).json({ message: 'Organization not found' });
+    }
+    if (organization.members.some(member => member.email === user_email)) {
+      return res.status(400).json({ message: 'User already in the organization' });
+    }
+
+    organization.members.push({ email: user_email, access_level: 'read-only ' });
+
+    await organization.save();
+
+    res.json({ message: `User with email ${user_email} invited successfully` });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 module.exports = OrganizationController;
