@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require('jsonwebtoken');
 const UserController = {};
 
+const client = require('../config/ClientRedis');
 // signup
 UserController.signup = async (req, res) => {
   const { name, email, password } = req.body;
@@ -69,6 +70,11 @@ UserController.refreshToken = async (req, res) => {
   
     try {
       
+      const isRevoked = await client.get(refresh_token);
+      if (isRevoked) {
+        return res.status(403).json({ message: 'Refresh token has been revoked' });
+      }
+
       jwt.verify(refresh_token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
           return res.status(403).json({ message: 'Invalid refresh token' });
@@ -89,3 +95,28 @@ UserController.refreshToken = async (req, res) => {
     }
 };
 module.exports = UserController;
+
+// revoke refresh token
+UserController.revokeRefreshToken = async (req, res) => {
+  const { refresh_token } = req.body;
+
+  if (!refresh_token) {
+    return res.status(400).json({ message: 'Refresh token is required' });
+  }
+
+  try {
+    
+    if (!client.isOpen) {
+      await client.connect(); 
+    }
+    
+    await client.set(refresh_token, 'true', {
+      EX: 10  // 10 seconds
+    });
+
+    res.json({ message: 'Refresh token revoked successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

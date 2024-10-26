@@ -8,9 +8,12 @@ services:
       - "8080:8080"
     depends_on:
       - mongo
+      - redis
     environment:
       MONGO_URI: mongodb://mongo:27017/organizationAPI
       JWT_SECRET: SECRET
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
   
   mongo:
     image: mongo
@@ -19,6 +22,11 @@ services:
       - '27017:27017'
     volumes:
       - mongo-data:/data/db
-
+      
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - '6379:6379'
 volumes:
   mongo-data:
