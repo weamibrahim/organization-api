@@ -13,6 +13,7 @@ OrganizationController.createOrganization = async (req, res) => {
     const organization = new Organization({
       name,
       description,
+      creator_id: req.user.id,
       members: [{ name: req.user.name, email: req.user.email, access_level: 'admin' }],
     });
 

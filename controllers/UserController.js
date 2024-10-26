@@ -1,9 +1,9 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const UserController = {};
 
-const client = require('../config/ClientRedis');
+const client = require("../config/ClientRedis");
 // signup
 UserController.signup = async (req, res) => {
   const { name, email, password } = req.body;
@@ -34,12 +34,12 @@ UserController.signIn = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: 'not found email' });
+      return res.status(400).json({ message: "not found email" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'password not match' });
+      return res.status(400).json({ message: "password not match" });
     }
 
     const payload = {
@@ -47,52 +47,62 @@ UserController.signIn = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        
       },
     };
 
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.json({ accessToken, refreshToken });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 // refresh token
 UserController.refreshToken = async (req, res) => {
-    const { refresh_token } = req.body;
+  const { refresh_token } = req.body;
 
-    if (!refresh_token) {
-      return res.status(400).json({ message: 'Refresh token is required' });
+  if (!refresh_token) {
+    return res.status(400).json({ message: "Refresh token is required" });
+  }
+
+  try {
+    const isRevoked = await client.get(refresh_token);
+    if (isRevoked) {
+      return res
+        .status(403)
+        .json({ message: "Refresh token has been revoked" });
     }
-  
-    try {
-      
-      const isRevoked = await client.get(refresh_token);
-      if (isRevoked) {
-        return res.status(403).json({ message: 'Refresh token has been revoked' });
+
+    jwt.verify(refresh_token, process.env.JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).json({ message: "Invalid refresh token" });
       }
 
-      jwt.verify(refresh_token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-          return res.status(403).json({ message: 'Invalid refresh token' });
-        }
-  
-        const payload = { user: { id: user.id , email: user.email, name: user.name} };
-        const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-        const newRefreshToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-  
-        res.json({
-          message: 'Token refreshed successfully',
-          access_token: newAccessToken,
-          refresh_token: newRefreshToken,
-        });
+      const payload = {
+        user: { id: user.id, email: user.email, name: user.name },
+      };
+      const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "1h",
       });
-    } catch (err) {
-      res.status(500).json({ message: 'Server error' });
-    }
+      const newRefreshToken = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
+      res.json({
+        message: "Token refreshed successfully",
+        access_token: newAccessToken,
+        refresh_token: newRefreshToken,
+      });
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
 module.exports = UserController;
 
@@ -101,22 +111,21 @@ UserController.revokeRefreshToken = async (req, res) => {
   const { refresh_token } = req.body;
 
   if (!refresh_token) {
-    return res.status(400).json({ message: 'Refresh token is required' });
+    return res.status(400).json({ message: "Refresh token is required" });
   }
 
   try {
-    
     if (!client.isOpen) {
-      await client.connect(); 
+      await client.connect();
     }
-    
-    await client.set(refresh_token, 'true', {
-      EX: 10  // 10 seconds
+
+    await client.set(refresh_token, "true", {
+      EX: 10, // 10 seconds
     });
 
-    res.json({ message: 'Refresh token revoked successfully' });
+    res.json({ message: "Refresh token revoked successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
